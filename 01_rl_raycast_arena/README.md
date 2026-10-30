@@ -7,12 +7,12 @@ An autonomous 2D survival and target-interception environment where a **Scout Dr
 ## AI & Machine Learning Concepts
 
 * **Egocentric Markov Decision Process (MDP)**:
-  * **Observation Space ($\mathbb{R}^{53}$)**: 16 LiDAR rays spanning $360^\circ$ around the drone's nose $\times$ 3 occluded proximity channels (`Wall`, `Hazard`, `Core`) + 5 body-frame proprioception & target-compass features ($v_{\text{fwd}}, v_{\text{lat}}, \cos\Delta\phi, \sin\Delta\phi, d_{\text{core}}$).
+  * **Observation Space ($\mathbb{R}^{133}$)**: 32 LiDAR rays spanning $360^\circ$ around the drone's nose $\times$ 3 occluded proximity channels (`Wall`, `Hazard`, `Core`) + 32 Doppler obstacle closing-velocity rates ($\Delta\text{proximity}_t$) + 5 body-frame proprioception & target-compass features ($v_{\text{fwd}}, v_{\text{lat}}, \cos\Delta\phi, \sin\Delta\phi, d_{\text{core}}$).
   * **Symmetric Action Space ($|\mathcal{A}| = 6$)**: `COAST`, `THRUST`, `TURN_LEFT`, `TURN_RIGHT`, `THRUST_LEFT`, `THRUST_RIGHT`.
-  * **Potential-Based Reward Shaping**: $+10.0$ per harvested core, $-10.0$ terminal crash penalty, $+0.06 \cdot (d_{t-1} - d_t)$ dense progress shaping, and $-0.015$ step urgency.
-* **Double Deep Q-Network (`PyTorch`)**:
-  * LayerNorm-stabilized MLP (`53 -> 128 -> 128 -> 6`) with orthogonal weight initialization.
-  * **Pre-Allocated NumPy Replay Buffer** ($50,000$ transitions) breaking temporal correlation.
+  * **Safety-Aware Reward Shaping**: $+12.0$ per harvested core, $-35.0$ terminal crash penalty, smooth close-clearance repulsion buffer, and $+0.05 \cdot (d_{t-1} - d_t)$ potential-based progress shaping.
+* **Dueling Double Deep Q-Network (`PyTorch`)**:
+  * LayerNorm-stabilized Dueling MLP (`133 -> 160 -> 160 -> V(s) + A(s, a)`) decomposing state danger from steering advantage.
+  * **Pre-Allocated NumPy Replay Buffer** ($60,000$ transitions) breaking temporal correlation.
   * **Decoupled Action Selection & Evaluation**: Online network $Q_\theta$ selects $a^* = \arg\max_{a'} Q_\theta(s_{t+1}, a')$, while Polyak-averaged target network $Q_{\theta^-}$ evaluates $Q_{\theta^-}(s_{t+1}, a^*)$.
 
 ---
@@ -48,8 +48,8 @@ An autonomous 2D survival and target-interception environment where a **Scout Dr
 ```powershell
 cd 01_rl_raycast_arena
 
-# 1. Watch the trained champion brain at 60 FPS with live Q(s, a) telemetry
-python -m src.main --load checkpoints/best_dqn.pt --eval
+# 1. Watch the trained champion brain in endless 60 FPS mode (auto-loads best_dqn.pt)
+python -m src.main --eval
 
 # 2. Train a brand-new brain interactively (Press SPACE to toggle Turbo Mode)
 python -m src.main
@@ -70,11 +70,11 @@ pytest -v
 
 ---
 
-## Training Benchmark (CPU — Intel Core i7-11800H)
+## 100-Episode Unseen Benchmark (CPU — Intel Core i7-11800H)
 
-| Stage | Epsilon ($\epsilon$) | Greedy Eval Avg Reward | Avg Cores Harvested / Episode |
-| :--- | :-: | :-: | :-: |
-| **Untrained (Episode 0)** | `1.000` | `-24.28` | `0.00` |
-| **Episode 50** | `0.766` | `+1.73` | `0.67` |
-| **Episode 100** | `0.378` | `+97.85` | `5.40` |
-| **Champion (`best_dqn.pt`)** | `0.040` | **`+160.92`** | **`8.27`** |
+| Pilot (100 Unseen Seeds) | Avg Score | Avg Cores / Ep | Wall Crash Rate | Full 1,000-Step Survival | Best Endless Run |
+| :--- | :-: | :-: | :-: | :-: | :-: |
+| **Random Baseline** | `-40.96` | `0.20` | `63%` | `0%` | `1` core (`2.1s`) |
+| **Rule-Based `if/else` Bot** | `+135.00` | `7.88` | `0%` | `27%` | — |
+| **v1 Single-Frame DQN** | `+112.21` | `5.90` | `8%` | `2%` | `14` cores (`13.2s`) |
+| **v2 Dueling-Doppler (`best_dqn.pt`)** | **`+193.18`** | **`10.64`** | **`0%`** | **`25%`** | **`52` cores (`48.4s`)** |
