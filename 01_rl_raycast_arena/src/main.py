@@ -6,6 +6,7 @@ import argparse
 from pathlib import Path
 import time
 import numpy as np
+import torch
 
 from src.ai.dqn_agent import DQNAgent, DQNConfig
 from src.sim.arena_env import RaycastArenaEnv
@@ -163,6 +164,8 @@ def run_interactive_lab(
                     turbo_mode = not turbo_mode
                 elif event.key == pygame.K_e:
                     eval_mode = not eval_mode
+                    if eval_mode and agent.total_steps == 0 and checkpoint_path.exists():
+                        agent.load_checkpoint(checkpoint_path)
                 elif event.key == pygame.K_r:
                     show_rays = not show_rays
                 elif event.key == pygame.K_s:
@@ -174,7 +177,7 @@ def run_interactive_lab(
         t0 = time.perf_counter()
         for _ in range(steps_this_frame):
             last_action, last_q = agent.select_action(state, greedy=eval_mode)
-            res = env.step(last_action)
+            res = env.step(last_action, endless=eval_mode)
             if not eval_mode:
                 agent.record_step(
                     state, last_action, res.reward, res.observation, res.terminated
@@ -210,13 +213,15 @@ def run_interactive_lab(
 def main() -> None:
     """Entrypoint wiring CLI arguments to headless training or interactive telemetry."""
     args = parse_args()
+    if not torch.cuda.is_available():
+        torch.set_num_threads(1)
     arena_cfg = ArenaConfig()
     dqn_cfg = DQNConfig(obs_dim=arena_cfg.observation_dim, action_dim=arena_cfg.action_dim)
     env = RaycastArenaEnv(arena_cfg, seed=args.seed)
     agent = DQNAgent(dqn_cfg, seed=args.seed)
 
     ckpt = Path(args.load) if args.load else DEFAULT_CHECKPOINT
-    if args.load and ckpt.exists():
+    if (args.load or args.eval) and ckpt.exists():
         agent.load_checkpoint(ckpt)
 
     if args.headless:

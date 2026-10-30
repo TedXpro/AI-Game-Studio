@@ -114,7 +114,7 @@ def test_environment_seed_determinism_and_core_collection() -> None:
 def test_double_dqn_td_convergence_and_checkpoint_roundtrip(tmp_path: Path) -> None:
     """Confirms Double-DQN converges on terminal target rewards and restores weights."""
     cfg = DQNConfig(
-        obs_dim=53,
+        obs_dim=ArenaConfig().observation_dim,
         action_dim=6,
         hidden_dim=64,
         learning_rate=5e-3,

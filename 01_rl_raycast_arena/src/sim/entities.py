@@ -40,23 +40,25 @@ class ArenaConfig:
     core_radius: float = 12.0
     num_hazards: int = 5
     num_cores: int = 3
-    hazard_speed: float = 2.2
-    thrust_accel: float = 0.55
-    linear_drag: float = 0.92
-    turn_rate: float = 0.14
-    max_speed: float = 6.5
-    num_rays: int = 16
+    hazard_speed: float = 1.75
+    thrust_accel: float = 0.85
+    linear_drag: float = 0.84
+    turn_rate: float = 0.18
+    max_speed: float = 5.0
+    num_rays: int = 32
     max_ray_range: float = 350.0
     max_steps: int = 1000
-    core_reward: float = 10.0
-    crash_penalty: float = -10.0
-    progress_scale: float = 0.06
-    step_penalty: float = -0.015
+    core_reward: float = 12.0
+    crash_penalty: float = -35.0
+    progress_scale: float = 0.05
+    step_penalty: float = 0.0
+    danger_margin: float = 52.0
+    danger_penalty_scale: float = 0.30
 
     @property
     def observation_dim(self) -> int:
         """Returns the total length of the flat egocentric observation vector."""
-        return self.num_rays * 3 + 5
+        return self.num_rays * 4 + 5
 
     @property
     def action_dim(self) -> int:
@@ -188,6 +190,30 @@ def is_wall_collision(agent: AgentState, config: ArenaConfig) -> bool:
     r = config.agent_radius
     x, y = float(agent.position[0]), float(agent.position[1])
     return x <= r or x >= (config.width - r) or y <= r or y >= (config.height - r)
+
+
+def compute_min_obstacle_clearance(
+    agent: AgentState,
+    hazards: NDArray[np.float32],
+    config: ArenaConfig,
+) -> float:
+    """Computes minimum hull-to-surface clearance from walls and hazards.
+
+    Args:
+        agent: Current drone state.
+        hazards: Active hazard positions of shape (num_hazards, 2).
+        config: Arena dimensions and entity radii.
+
+    Returns:
+        Minimum clearance in pixels (negative or zero upon collision).
+    """
+    x, y = float(agent.position[0]), float(agent.position[1])
+    wall_clear = min(x, config.width - x, y, config.height - y) - config.agent_radius
+    if hazards.shape[0] == 0:
+        return wall_clear
+    dists = np.linalg.norm(hazards - agent.position[None, :], axis=1)
+    haz_clear = float(np.min(dists)) - config.agent_radius - config.hazard_radius
+    return min(wall_clear, haz_clear)
 
 
 def find_colliding_circles(

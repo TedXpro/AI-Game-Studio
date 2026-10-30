@@ -17,20 +17,20 @@ from src.ai.replay_buffer import ReplayBuffer, TransitionBatch
 class DQNConfig:
     """Hyperparameters governing Double-DQN exploration, optimization, and memory."""
 
-    obs_dim: int = 53
+    obs_dim: int = 133
     action_dim: int = 6
-    hidden_dim: int = 128
-    learning_rate: float = 1e-3
-    gamma: float = 0.985
+    hidden_dim: int = 160
+    learning_rate: float = 8e-4
+    gamma: float = 0.99
     batch_size: int = 64
-    buffer_capacity: int = 50_000
-    warmup_steps: int = 1_000
-    train_frequency: int = 2
-    tau: float = 0.01
+    buffer_capacity: int = 60_000
+    warmup_steps: int = 1_200
+    train_frequency: int = 4
+    tau: float = 0.015
     max_grad_norm: float = 5.0
     epsilon_start: float = 1.0
-    epsilon_end: float = 0.04
-    epsilon_decay_steps: int = 32_000
+    epsilon_end: float = 0.03
+    epsilon_decay_steps: int = 40_000
 
 
 def compute_double_dqn_targets(

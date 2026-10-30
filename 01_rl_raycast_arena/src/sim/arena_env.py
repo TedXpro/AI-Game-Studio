@@ -13,10 +13,11 @@ from src.sim.entities import (
     RayReadout,
     advance_agent_kinematics,
     advance_hazards,
+    compute_min_obstacle_clearance,
     find_colliding_circles,
     is_wall_collision,
 )
-from src.sim.raycast import build_observation, cast_sensor_rays
+from src.sim.raycast import build_observation, cast_sensor_rays, extract_danger_proximity
 
 
 @dataclass(frozen=True)
@@ -64,19 +65,13 @@ class RaycastArenaEnv:
         self.hazard_velocities = np.zeros((self.config.num_hazards, 2), dtype=np.float32)
         self.cores = np.zeros((self.config.num_cores, 2), dtype=np.float32)
         self.last_rays = cast_sensor_rays(self.agent, self.hazards, self.cores, self.config)
+        self._prev_danger = extract_danger_proximity(self.last_rays, self.config)
         self.step_count = 0
         self.episode_cores = 0
         self.episode_reward = 0.0
 
     def reset(self, seed: int | None = None) -> NDArray[np.float32]:
-        """Resets the arena to a fresh episode and returns the initial observation.
-
-        Args:
-            seed: Optional seed override for reproducible episode initialization.
-
-        Returns:
-            Initial float32 observation vector of shape (observation_dim,).
-        """
+        """Resets the arena to a fresh episode and returns the initial observation."""
         if seed is not None:
             self._rng = np.random.default_rng(seed)
 
@@ -93,17 +88,13 @@ class RaycastArenaEnv:
         self.episode_cores = 0
         self.episode_reward = 0.0
         self.last_rays = cast_sensor_rays(self.agent, self.hazards, self.cores, self.config)
-        return build_observation(self.agent, self.last_rays, self.cores, self.config)
+        self._prev_danger = extract_danger_proximity(self.last_rays, self.config)
+        return build_observation(
+            self.agent, self.last_rays, self.cores, self.config, self._prev_danger
+        )
 
-    def step(self, action: int) -> StepResult:
-        """Advances the simulation by one tick and computes reward and termination flags.
-
-        Args:
-            action: Discrete control command in [0, action_dim - 1].
-
-        Returns:
-            StepResult containing next observation, shaped reward, and episode flags.
-        """
+    def step(self, action: int, endless: bool = False) -> StepResult:
+        """Advances the simulation by one tick and computes reward and termination flags."""
         if action < 0 or action >= self.config.action_dim:
             raise ValueError(f"Action {action} outside valid range [0, {self.config.action_dim}).")
 
@@ -132,16 +123,25 @@ class RaycastArenaEnv:
         if crashed:
             reward += self.config.crash_penalty
         else:
+            clearance = compute_min_obstacle_clearance(self.agent, self.hazards, self.config)
+            if clearance < self.config.danger_margin:
+                intrusion = 1.0 - max(0.0, clearance) / self.config.danger_margin
+                reward -= self.config.danger_penalty_scale * (intrusion * intrusion)
             collected_now = self._collect_and_respawn_cores()
             reward += collected_now * self.config.core_reward
 
         self.episode_cores += collected_now
         self.episode_reward += reward
         terminated = crashed
-        truncated = (not terminated) and (self.step_count >= self.config.max_steps)
+        truncated = (not endless) and (not terminated) and (
+            self.step_count >= self.config.max_steps
+        )
 
         self.last_rays = cast_sensor_rays(self.agent, self.hazards, self.cores, self.config)
-        obs = build_observation(self.agent, self.last_rays, self.cores, self.config)
+        obs = build_observation(
+            self.agent, self.last_rays, self.cores, self.config, self._prev_danger
+        )
+        self._prev_danger = extract_danger_proximity(self.last_rays, self.config)
         return StepResult(
             observation=obs,
             reward=float(reward),
@@ -216,10 +216,10 @@ class RaycastArenaEnv:
     def _spawn_all_cores(self) -> None:
         """Spawns all energy cores away from walls, the agent, and active hazards."""
         placed: list[NDArray[np.float32]] = [self.agent.position.copy(), *list(self.hazards)]
-        margin = self.config.core_radius + 36.0
+        margin = self.config.core_radius + 64.0
         for idx in range(self.config.num_cores):
             avoid = np.stack(placed, axis=0)
-            pos = self._sample_safe_point(margin, avoid, min_clearance=65.0)
+            pos = self._sample_safe_point(margin, avoid, min_clearance=90.0)
             placed.append(pos)
             self.cores[idx] = pos
 
@@ -232,9 +232,9 @@ class RaycastArenaEnv:
             self.config.core_radius,
         )
         hit_indices = np.flatnonzero(hit_mask)
-        margin = self.config.core_radius + 36.0
+        margin = self.config.core_radius + 64.0
         for idx in hit_indices:
             other_cores = np.delete(self.cores, idx, axis=0)
             avoid = np.vstack((self.agent.position[None, :], self.hazards, other_cores))
-            self.cores[idx] = self._sample_safe_point(margin, avoid, min_clearance=65.0)
+            self.cores[idx] = self._sample_safe_point(margin, avoid, min_clearance=90.0)
         return int(hit_indices.shape[0])

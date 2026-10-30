@@ -172,19 +172,38 @@ def compute_nearest_core_features(
     return cos_bearing, sin_bearing, min(1.0, dist / diag)
 
 
+def extract_danger_proximity(readout: RayReadout, config: ArenaConfig) -> NDArray[np.float32]:
+    """Computes normalized [0, 1] proximity for rays hitting walls or hazards.
+
+    Args:
+        readout: Current LiDAR sweep results.
+        config: Arena configuration parameters.
+
+    Returns:
+        Float32 array of shape (num_rays,) with non-zero proximity on obstacle rays.
+    """
+    proximity = np.clip(1.0 - (readout.distances / config.max_ray_range), 0.0, 1.0)
+    is_obstacle = (readout.hit_types == int(HitType.WALL)) | (
+        readout.hit_types == int(HitType.HAZARD)
+    )
+    return np.where(is_obstacle, proximity, 0.0).astype(np.float32)
+
+
 def build_observation(
     agent: AgentState,
     readout: RayReadout,
     cores: NDArray[np.float32],
     config: ArenaConfig,
+    prev_danger: NDArray[np.float32] | None = None,
 ) -> NDArray[np.float32]:
-    """Encodes LiDAR proximity channels and egocentric proprioception into a flat vector.
+    """Encodes LiDAR proximity, Doppler closing rates, and body-frame state.
 
     Args:
         agent: Current pose and velocity of the drone.
         readout: Current LiDAR sweep results.
         cores: Active energy core positions.
         config: Arena configuration parameters.
+        prev_danger: Previous tick obstacle proximity per ray for Doppler velocity.
 
     Returns:
         Normalized float32 observation vector of shape (observation_dim,).
@@ -201,6 +220,12 @@ def build_observation(
         readout.hit_types == int(HitType.CORE)
     ]
 
+    curr_danger = extract_danger_proximity(readout, config)
+    if prev_danger is None or prev_danger.shape != curr_danger.shape:
+        closing_rate = np.zeros(config.num_rays, dtype=np.float32)
+    else:
+        closing_rate = np.clip((curr_danger - prev_danger) * 15.0, -1.0, 1.0)
+
     cos_h, sin_h = math.cos(agent.heading), math.sin(agent.heading)
     vx, vy = float(agent.velocity[0]), float(agent.velocity[1])
     v_forward = np.clip((vx * cos_h + vy * sin_h) / config.max_speed, -1.0, 1.0)
@@ -208,4 +233,4 @@ def build_observation(
     cos_b, sin_b, norm_dist = compute_nearest_core_features(agent, cores, config)
 
     self_features = np.array([v_forward, v_lateral, cos_b, sin_b, norm_dist], dtype=np.float32)
-    return np.concatenate((ray_channels.ravel(), self_features)).astype(np.float32)
+    return np.concatenate((ray_channels.ravel(), closing_rate, self_features)).astype(np.float32)
