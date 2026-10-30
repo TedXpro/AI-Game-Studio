@@ -10,7 +10,7 @@ Instead of focusing on heavy UI menus or asset pipelines, each project isolates 
 
 | # | Project | Stack | Core AI / ML Algorithms | Status |
 | :-: | :--- | :--- | :--- | :-: |
-| **01** | [**Raycast Survival Arena**](./01_rl_raycast_arena/README.md) | Python 3.12, PyTorch, NumPy, Pygame-CE | Deep Q-Networks (DQN), Experience Replay, Target Networks, 2D Raycast Sensory Perception | Planned |
+| **01** | [**Raycast Survival Arena**](./01_rl_raycast_arena/README.md) | Python 3.12, PyTorch, NumPy, Pygame-CE | Deep Q-Networks (Double DQN), Experience Replay, Polyak Target Sync, 2D LiDAR Perception | Completed |
 | **02** | [**Autonomous Tactical Squad**](./02_goap_tactical_squad/README.md) | Modern C++20, Raylib / ANSI Telemetry | Goal-Oriented Action Planning (GOAP), Shared Blackboard, Spatial A* Pathfinding, Steering | Planned |
 | **03** | [**AlphaZero-Lite Quoridor**](./03_alphazero_quoridor/README.md) | Python 3.12, PyTorch, NumPy, Pygame-CE | Monte Carlo Tree Search (PUCT), Dual-Head Policy/Value Neural Network, Self-Play RL | Planned |
 
