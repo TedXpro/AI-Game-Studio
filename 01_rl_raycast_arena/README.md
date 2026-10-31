@@ -22,21 +22,28 @@ An autonomous 2D survival and target-interception environment where a **Scout Dr
 ```text
 01_rl_raycast_arena/
 ├── checkpoints/
-│   └── best_dqn.pt                 # Trained champion Double-DQN weights
+│   ├── milestone_1_ep000.pt        # [1] Stage 1: Untrained baseline
+│   ├── milestone_2_ep035.pt        # [2] Stage 2: Early novice (wall avoidance)
+│   ├── milestone_3_ep090.pt        # [3] Stage 3: Skilled core harvester
+│   ├── best_dqn.pt                 # [4] Stage 4: Champion Dueling-Doppler brain
+│   └── training_history.json       # Full 450-episode progression telemetry
+├── notebooks/
+│   └── 01_rl_arena_guide.ipynb     # Pre-executed interactive math & plotting guide
 ├── pyproject.toml                  # Pytest path configuration
 ├── requirements.txt                # Python dependencies
 ├── src/
 │   ├── sim/
 │   │   ├── entities.py             # Inertial kinematics, wall bounce & disc collisions
-│   │   ├── raycast.py              # Vectorized 2D ray-wall & ray-circle LiDAR math
+│   │   ├── raycast.py              # Vectorized 2D ray-wall, ray-circle & Doppler math
 │   │   └── arena_env.py            # Headless reset() / step(action) MDP environment
 │   ├── ai/
-│   │   ├── q_network.py            # LayerNorm MLP Q-value network
+│   │   ├── q_network.py            # LayerNorm Dueling MLP Q-value network
 │   │   ├── replay_buffer.py        # Contiguous NumPy circular experience memory
-│   │   └── dqn_agent.py            # Double-DQN Bellman update, Polyak sync & checkpoints
+│   │   ├── dqn_agent.py            # Double-DQN Bellman update, Polyak sync & checkpoints
+│   │   └── trainer.py              # Headless trainer, milestone saver & JSON logger
 │   ├── view/
 │   │   └── visualizer.py           # Pygame-CE LiDAR geometry & live Q(s, a) advantage HUD
-│   └── main.py                     # Headless turbo CLI & 60 FPS interactive telemetry lab
+│   └── main.py                     # Headless turbo CLI & [1-4] stage interactive lab
 └── tests/
     └── test_arena_and_dqn.py       # Unit tests + automated <=250 LOC & zero-comment gate
 ```
@@ -48,20 +55,24 @@ An autonomous 2D survival and target-interception environment where a **Scout Dr
 ```powershell
 cd 01_rl_raycast_arena
 
-# 1. Watch the trained champion brain in endless 60 FPS mode (auto-loads best_dqn.pt)
+# 1. Watch the Stage 4 Champion brain in endless 60 FPS mode (press 1-4 to compare stages!)
 python -m src.main --eval
 
-# 2. Train a brand-new brain interactively (Press SPACE to toggle Turbo Mode)
+# 2. Launch directly at a specific evolutionary stage (1 = Ep 0, 2 = Ep 35, 3 = Ep 90, 4 = Champion)
+python -m src.main --stage 1
+
+# 3. Train a brand-new brain interactively (Press SPACE to toggle Turbo Mode)
 python -m src.main
 
-# 3. Train headlessly from the command line
-python -m src.main --headless --episodes 350
+# 4. Train headlessly and regenerate all 4 milestones + training_history.json
+python -m src.main --headless --episodes 450
 
-# 4. Run unit & clean-code compliance tests
+# 5. Open the interactive notebook (VS Code / Jupyter) or run unit tests
 pytest -v
 ```
 
 ### Interactive Lab Hotkeys
+* `1` / `2` / `3` / `4` — Hot-swap **Stage 1 (Ep 0)** $\rightarrow$ **Stage 2 (Ep 35)** $\rightarrow$ **Stage 3 (Ep 90)** $\rightarrow$ **Stage 4 (Champion)** live on screen!
 * `SPACE` — Toggle **Turbo Training** vs. **60 FPS Live Watch**
 * `E` — Toggle **Greedy Evaluation** ($\epsilon = 0$) vs. Exploration
 * `R` — Toggle **LiDAR Ray Overlay**
