@@ -10,6 +10,7 @@ import numpy as np
 import pytest
 
 from src.ai.dqn_agent import DQNAgent, DQNConfig
+from src.ai.trainer import HISTORY_FILENAME, MILESTONE_SPECS, TrainingHistory, run_training_session
 from src.sim.arena_env import RaycastArenaEnv
 from src.sim.entities import Action, AgentState, ArenaConfig, HitType
 from src.sim.raycast import build_observation, cast_sensor_rays
@@ -167,3 +168,33 @@ def test_offscreen_visualizer_renders_telemetry_png(tmp_path: Path) -> None:
     vis.save_screenshot(out_file)
     vis.close()
     assert out_file.exists() and out_file.stat().st_size > 1000
+
+
+def test_milestone_trainer_and_history_json(tmp_path: Path) -> None:
+    """Verifies Stages 1-4 checkpoint generation and JSON telemetry persistence."""
+    arena_cfg = ArenaConfig(max_steps=40)
+    dqn_cfg = DQNConfig(
+        obs_dim=arena_cfg.observation_dim,
+        action_dim=arena_cfg.action_dim,
+        hidden_dim=32,
+        batch_size=8,
+        warmup_steps=8,
+        train_frequency=2,
+    )
+    env = RaycastArenaEnv(arena_cfg, seed=3)
+    agent = DQNAgent(dqn_cfg, seed=3, device="cpu")
+    history = run_training_session(
+        env,
+        agent,
+        episodes=6,
+        checkpoint_dir=tmp_path,
+        eval_interval=3,
+        eval_episodes=2,
+        verbose=False,
+    )
+    assert len(history.episodes) == 6
+    assert len(history.eval_episodes) == 3
+    for filename, _ in MILESTONE_SPECS.values():
+        assert (tmp_path / filename).exists()
+    reloaded = TrainingHistory.load_json(tmp_path / HISTORY_FILENAME)
+    assert reloaded.rewards == history.rewards

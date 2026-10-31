@@ -177,7 +177,7 @@ class ArenaVisualizer:
         self._draw_q_bars(pad, 222, telemetry.q_values, telemetry.chosen_action)
         self._draw_sparkline(pad, 412, PANEL_WIDTH - 32, 115, telemetry.reward_history)
 
-        controls = "[SPACE] Turbo  [E] Eval  [R] Rays  [S/L] Ckpt"
+        controls = "[1-4] Stages  [SPACE] Turbo  [E] Eval  [R] Rays"
         self.surface.blit(self.font_small.render(controls, True, (125, 145, 175)), (pad, self.height - 26))
 
     def _draw_q_bars(
