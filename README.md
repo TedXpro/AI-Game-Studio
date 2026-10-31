@@ -23,6 +23,8 @@ All three projects follow strict studio engineering constraints documented in [*
 * **Decoupled Headless Simulation (`sim/` <-> `ai/` <-> `view/`)**: Every game exposes a clean `reset()` / `step(action)` simulation core completely independent of rendering—enabling **1,000x headless training speed** alongside **60 FPS live visual inspection**.
 * **Strict <= 250 Lines Per File**: Every module maintains a single, focused responsibility under 250 lines of code.
 * **Self-Documenting Code**: Structured docstrings/Doxygen headers on every class and function, full static typing (`mypy`-ready annotations in Python, `constexpr`/`[[nodiscard]]` RAII in C++20), and **zero inline comments** inside function bodies.
+* **Live `[1]`–`[4]` Evolutionary Stage Hotkeys**: Every visualizer binds keys `1`–`4` to progressive AI milestones (from untrained/naive baseline up to the converged champion) so progression can be compared live on screen.
+* **Interactive Learning Notebooks (`notebooks/`)**: Every project pairs its clean `src/` engine with a pre-executed Jupyter Notebook containing intuitive explanations, math, sensor plots, and multi-panel progression charts.
 * **Deterministic Reproducibility**: Explicit seeded PRNGs across environments, search trees, and neural network training runs.
 
 ```mermaid

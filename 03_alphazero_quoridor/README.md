@@ -20,7 +20,9 @@ An adversarial strategy AI built in **Python & PyTorch** that masters **Quoridor
 
 ```text
 03_alphazero_quoridor/
-├── checkpoints/                # Champion self-play neural network weights (.pt)
+├── checkpoints/                # Milestone & Champion self-play weights (.pt) + history (.json)
+├── notebooks/
+│   └── 03_alphazero_guide.ipynb # Interactive PUCT math, policy heatmaps & Elo progression
 ├── requirements.txt            # Python dependencies
 └── src/
     ├── sim/
@@ -42,4 +44,4 @@ An adversarial strategy AI built in **Python & PyTorch** that masters **Quoridor
 1. **Step 1 — Quoridor Rules & Graph Reachability (`sim/`)**: Encode board state, jump mechanics, legal action bitmasks, and BFS wall legality checks (starting on a fast 5x5 / 7x7 board for rapid laptop training, scalable to 9x9).
 2. **Step 2 — Pure MCTS Baseline (`ai/mcts.py`)**: Build and verify the PUCT search tree against shortest-path heuristic bots.
 3. **Step 3 — Dual-Head Neural Network (`ai/policy_value_net.py`)**: Construct the multi-channel spatial tensor encoder and Policy-Value CNN in PyTorch.
-4. **Step 4 — Self-Play Loop & Interactive Board (`ai/self_play.py`, `view/board_view.py`)**: Train generations via self-play and visualize MCTS visit probabilities live while playing against your own AI.
+4. **Step 4 — Self-Play Loop, `[1]`–`[4]` Generation Hotkeys & Notebook (`ai/self_play.py`, `view/board_view.py`, `notebooks/`)**: Train generations via self-play, toggle `[1]`–`[4]` self-play milestones live in the board viewer, and plot win-rate/Elo curves in the companion notebook.

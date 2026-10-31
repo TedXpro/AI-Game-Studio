@@ -21,6 +21,9 @@ A real-time autonomous tactical simulation written in **Modern C++20** where spe
 
 ```text
 02_goap_tactical_squad/
+├── checkpoints/                # Exported C++20 tournament & tactical telemetry (.csv)
+├── notebooks/
+│   └── 02_goap_squad_guide.ipynb # Interactive GOAP math, A* heatmaps & Stage 1-4 benchmarks
 ├── include/
 │   ├── sim/
 │   │   ├── world_types.hpp     # Coordinates, entities, agent roles, and tactical grid
@@ -47,4 +50,4 @@ A real-time autonomous tactical simulation written in **Modern C++20** where spe
 1. **Step 1 — Tactical Grid & Line-of-Sight (`sim/`)**: Build the obstacle map, agent stats, vision cones, and headless tick engine in C++20.
 2. **Step 2 — Tactical A\* Navigation (`ai/pathfinder`)**: Implement threat-aware A\* pathfinding with custom priority queues.
 3. **Step 3 — Symbolic GOAP Engine (`ai/world_state`, `ai/goap_planner`)**: Build bitmask world states and A\* planning over actions.
-4. **Step 4 — Squad Coordination & Visualizer (`ai/blackboard`, `view/`)**: Connect Scouts, Medics, and Vanguards via the Blackboard and visualize active plans in real time.
+4. **Step 4 — Squad Coordination, `[1]`–`[4]` Stage Hotkeys & Notebook (`ai/blackboard`, `view/`, `notebooks/`)**: Compare `[1]` Random Patrol, `[2]` Greedy Rush, `[3]` Solo GOAP, and `[4]` Coordinated Squad GOAP + Threat-Aware A\* live and in the telemetry notebook.

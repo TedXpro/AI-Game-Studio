@@ -9,6 +9,7 @@ env/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+.ipynb_checkpoints/
 
 # Machine Learning Checkpoints & Logs
 *.pt
@@ -16,6 +17,9 @@ env/
 *.onnx
 *.npz
 !**/checkpoints/*best*.pt
+!**/checkpoints/*milestone*.pt
+!**/checkpoints/*.json
+!**/checkpoints/*.csv
 runs/
 logs/
 wandb/
